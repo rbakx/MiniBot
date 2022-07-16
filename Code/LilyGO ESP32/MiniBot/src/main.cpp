@@ -11,6 +11,7 @@
 #include <Arduino.h>
 #include <SPI.h>
 #include <Wire.h>
+#include <NewPing.h>
 #include "BluetoothSerial.h"
 // For TFT display of the the 'LilyGO TTGO T-Display V1.1 ESP32 - with 1.14 inch TFT Display' to work, in the '.pio\libdeps\ttgo-t1\TFT_eSPI\User_Setup_Select.h':
 // - Comment out the '//#include <User_Setup.h>'.
@@ -28,6 +29,7 @@ const int SERVO_RIGHT_PIN = 33;
 
 const int ULTRASONIC_TRIG_PIN = 2;
 const int ULTRASONIC_ECHO_PIN = 15;
+const int ULTRASONIC_MAX_DISTANCE = 100;
 
 const int ALLOWED_DISTANCE = 20;
 
@@ -39,6 +41,7 @@ Servo servoLeft;
 Servo servoRight;
 
 TFT_eSPI tft = TFT_eSPI(135, 240);
+NewPing ping(ULTRASONIC_TRIG_PIN, ULTRASONIC_ECHO_PIN, ULTRASONIC_MAX_DISTANCE); // NewPing setup of pin and maximum distance.
 BluetoothSerial SerialBT;
 
 unsigned long backgroundColor = TFT_BLUE;
@@ -70,9 +73,6 @@ void setup()
   // We can now plot text on screen using the "print" class.
   tft.println("Hello World!");
 
-  pinMode(ULTRASONIC_TRIG_PIN, OUTPUT); // Sets the ultrasonic trigger pin as an OUTPUT.
-  pinMode(ULTRASONIC_ECHO_PIN, INPUT);  // Sets the ultrasonic echo pin as an INPUT.
-
   servoLeft.attach(SERVO_LEFT_PIN);   // Attaches the servo to the servo object.
   servoRight.attach(SERVO_RIGHT_PIN); // Attaches the servo to the servo object.
 }
@@ -80,21 +80,15 @@ void setup()
 void loop()
 {
   static int mode = MODE_RESET;
-  long duration;
   int distance;
 
   // put your main code here, to run repeatedly:
-  // Clears the trigPin condition
-  digitalWrite(ULTRASONIC_TRIG_PIN, LOW);
-  delayMicroseconds(2);
-  // Sets the trigPin HIGH (ACTIVE) for 10 microseconds
-  digitalWrite(ULTRASONIC_TRIG_PIN, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(ULTRASONIC_TRIG_PIN, LOW);
-  // Reads the echoPin, returns the sound wave travel time in microseconds
-  duration = pulseIn(ULTRASONIC_ECHO_PIN, HIGH);
-  // Calculating the distance
-  distance = duration * 0.034 / 2; // Speed of sound wave divided by 2 (go and back)
+  distance = ping.ping_cm();
+  // NewPing library returns 0 with false echo.
+  if (distance == 0)
+  {
+    distance = ULTRASONIC_MAX_DISTANCE;
+  }
 
   static unsigned long previousBackgroundColor = TFT_BLUE;
   backgroundColor = distance < ALLOWED_DISTANCE ? TFT_RED : TFT_BLUE;
