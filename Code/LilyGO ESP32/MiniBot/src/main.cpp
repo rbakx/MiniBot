@@ -3,8 +3,11 @@
 // This is a demo program for the MiniBot using the 'LilyGO TTGO T-Display V1.1 ESP32 - with 1.14 inch TFT Display'
 // board.
 // The MiniBot can be 3D printed and is easy to assemble.
+// For driving two servos are used, type TS90M Mini Servo - 1.6kg - Continuous.
 // It drives forward and makes a turn when an obstacle is detected using an ultrasonic sensor.
-// It can also be remote controlled via Bluetooth.
+// In addition a robot arm mounted on the front can be controlled with two additonal servos, type TS90M Mini Servo - 1.6kg.
+// It can also be remote controlled via Bluetooth, using the 'Arduino Bluetooth Controller' app, see
+// https://play.google.com/store/apps/details?id=com.appsvalley.bluetooth.arduinocontroller.
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -24,8 +27,10 @@
 const int BUTTON_LEFT_PIN = 0;
 const int BUTTON_RIGHT_PIN = 35;
 
-const int SERVO_LEFT_PIN = 25;
-const int SERVO_RIGHT_PIN = 33;
+const int SERVO_WHEEL_LEFT_PIN = 25;
+const int SERVO_WHEEL_RIGHT_PIN = 26;
+const int SERVO_ARM_1_PIN = 32;
+const int SERVO_ARM_2_PIN = 33;
 
 const int ULTRASONIC_TRIG_PIN = 2;
 const int ULTRASONIC_ECHO_PIN = 15;
@@ -37,8 +42,10 @@ const int MODE_RESET = 0;
 const int MODE_AUTO = 1;
 const int MODE_MANUAL = 2;
 
-Servo servoLeft;
-Servo servoRight;
+Servo servoWheelLeft;
+Servo servoWheelRight;
+Servo servoArm1;
+Servo servoArm2;
 
 TFT_eSPI tft = TFT_eSPI(135, 240);
 NewPing ping(ULTRASONIC_TRIG_PIN, ULTRASONIC_ECHO_PIN, ULTRASONIC_MAX_DISTANCE); // NewPing setup of pin and maximum distance.
@@ -73,13 +80,21 @@ void setup()
   // We can now plot text on screen using the "print" class.
   tft.println("Hello World!");
 
-  servoLeft.attach(SERVO_LEFT_PIN);   // Attaches the servo to the servo object.
-  servoRight.attach(SERVO_RIGHT_PIN); // Attaches the servo to the servo object.
+  // Attach servo pins to servo objects.
+  servoWheelLeft.attach(SERVO_WHEEL_LEFT_PIN);
+  servoWheelRight.attach(SERVO_WHEEL_RIGHT_PIN);
+  servoArm1.attach(SERVO_ARM_1_PIN);
+  servoArm2.attach(SERVO_ARM_2_PIN);
 }
 
 void loop()
 {
   static int mode = MODE_RESET;
+  static unsigned long previousBackgroundColor = TFT_BLUE;
+  static int previousButtonLeftState = HIGH;
+  static int previousButtonRightState = HIGH;
+  static int servoArm1Pos = 90;
+  static int servoArm2Pos = 90;
   int distance;
 
   // put your main code here, to run repeatedly:
@@ -90,7 +105,6 @@ void loop()
     distance = ULTRASONIC_MAX_DISTANCE;
   }
 
-  static unsigned long previousBackgroundColor = TFT_BLUE;
   backgroundColor = distance < ALLOWED_DISTANCE ? TFT_RED : TFT_BLUE;
 
   // Only set background color when it changes to prevent flicker.
@@ -104,8 +118,6 @@ void loop()
   tft.println("Dist: \n" + String(distance) + " cm          ");
 
   // Switch between automatic mode and reset mode as soon as one of the onboard buttons is pressed.
-  static int previousButtonLeftState = HIGH;
-  static int previousButtonRightState = HIGH;
   int buttonLeftState = digitalRead(BUTTON_LEFT_PIN);
   int buttonRightState = digitalRead(BUTTON_RIGHT_PIN);
   if (previousButtonLeftState == HIGH && previousButtonRightState == HIGH && (buttonLeftState == LOW || buttonRightState == LOW))
@@ -139,20 +151,20 @@ void loop()
       // Turn left or right randomly.
       if (random(2) == 0)
       {
-        servoLeft.write(0);
-        servoRight.write(0);
+        servoWheelLeft.write(0);
+        servoWheelRight.write(0);
       }
       else
       {
-        servoLeft.write(180);
-        servoRight.write(180);
+        servoWheelLeft.write(180);
+        servoWheelRight.write(180);
       }
       delay(700);
     }
     else
     {
-      servoLeft.write(180);
-      servoRight.write(0);
+      servoWheelLeft.write(180);
+      servoWheelRight.write(0);
     }
   }
   else
@@ -160,32 +172,50 @@ void loop()
     switch (cmd)
     {
     case 'f':
-      servoLeft.write(180);
-      servoRight.write(0);
+      servoWheelLeft.write(180);
+      servoWheelRight.write(0);
       delay(500);
       break;
     case 'b':
-      servoLeft.write(0);
-      servoRight.write(180);
+      servoWheelLeft.write(0);
+      servoWheelRight.write(180);
       delay(500);
       break;
     case 'l':
-      servoLeft.write(0);
-      servoRight.write(0);
-      delay(200);
+      servoWheelLeft.write(0);
+      servoWheelRight.write(0);
       break;
     case 'r':
-      servoLeft.write(180);
-      servoRight.write(180);
-      delay(200);
+      servoWheelLeft.write(180);
+      servoWheelRight.write(180);
+      break;
+    case '1':
+      servoArm1Pos -= 5;
+      servoArm1Pos = max(0, min(180, servoArm1Pos));
+      servoArm1.write(servoArm1Pos);
+      break;
+    case '2':
+      servoArm1Pos += 5;
+      servoArm1Pos = max(0, min(180, servoArm1Pos));
+      servoArm1.write(servoArm1Pos);
+      break;
+    case '3':
+      servoArm2Pos -= 5;
+      servoArm2Pos = max(0, min(180, servoArm2Pos));
+      servoArm2.write(servoArm2Pos);
+      break;
+    case '4':
+      servoArm2Pos += 5;
+      servoArm2Pos = max(0, min(180, servoArm2Pos));
+      servoArm2.write(servoArm2Pos);
       break;
     case 'a':
       // switch back to automatic mode.
       mode = MODE_AUTO;
       break;
     default:
-      servoLeft.write(90);
-      servoRight.write(90);
+      servoWheelLeft.write(90);
+      servoWheelRight.write(90);
       break;
     }
   }
