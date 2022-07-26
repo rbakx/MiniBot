@@ -31,6 +31,8 @@ const int SERVO_WHEEL_LEFT_PIN = 25;
 const int SERVO_WHEEL_RIGHT_PIN = 26;
 const int SERVO_ARM_1_PIN = 32;
 const int SERVO_ARM_2_PIN = 33;
+const int SERVO_GRIPPER_OPEN = 180;
+const int SERVO_GRIPPER_CLOSED = 30;
 
 const int ULTRASONIC_TRIG_PIN = 2;
 const int ULTRASONIC_ECHO_PIN = 15;
@@ -200,12 +202,12 @@ void loop()
       servoArm1.write(servoArm1Pos);
       break;
     case '3':
-      servoArm2Pos -= 5;
+      servoArm2Pos = SERVO_GRIPPER_OPEN;
       servoArm2Pos = max(0, min(180, servoArm2Pos));
       servoArm2.write(servoArm2Pos);
       break;
     case '4':
-      servoArm2Pos += 5;
+      servoArm2Pos = SERVO_GRIPPER_CLOSED;
       servoArm2Pos = max(0, min(180, servoArm2Pos));
       servoArm2.write(servoArm2Pos);
       break;
