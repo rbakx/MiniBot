@@ -3,9 +3,10 @@
 // This is a demo program for the MiniBot using the 'LilyGO TTGO T-Display V1.1 ESP32 - with 1.14 inch TFT Display'
 // board.
 // The MiniBot can be 3D printed and is easy to assemble.
-// For driving two servos are used, type TS90M Mini Servo - 1.6kg - Continuous.
+// For driving two servos are used, type TS90D Mini Servo - 1.6kg - Continuous.
 // It drives forward and makes a turn when an obstacle is detected using an ultrasonic sensor.
-// In addition a robot arm mounted on the front can be controlled with two additonal servos, type TS90M Mini Servo - 1.6kg.
+// In addition a robot gripper mounted on the front can be controlled with two additonal servos,
+// type TS90M Mini Servo - 1.6kg (metal gearing and no continuous rotation).
 // It can also be remote controlled via Bluetooth, using the 'Arduino Bluetooth Controller' app, see
 // https://play.google.com/store/apps/details?id=com.appsvalley.bluetooth.arduinocontroller.
 //
@@ -29,8 +30,8 @@ const int BUTTON_RIGHT_PIN = 35;
 
 const int SERVO_WHEEL_LEFT_PIN = 25;
 const int SERVO_WHEEL_RIGHT_PIN = 26;
-const int SERVO_ARM_1_PIN = 32;
-const int SERVO_ARM_2_PIN = 33;
+const int SERVO_GRIPPER_1_PIN = 32;
+const int SERVO_GRIPPER_2_PIN = 33;
 const int SERVO_GRIPPER_OPEN = 180;
 const int SERVO_GRIPPER_CLOSED = 30;
 
@@ -46,8 +47,8 @@ const int MODE_MANUAL = 2;
 
 Servo servoWheelLeft;
 Servo servoWheelRight;
-Servo servoArm1;
-Servo servoArm2;
+Servo servoGripper1;
+Servo servoGripper2;
 
 TFT_eSPI tft = TFT_eSPI(135, 240);
 NewPing ping(ULTRASONIC_TRIG_PIN, ULTRASONIC_ECHO_PIN, ULTRASONIC_MAX_DISTANCE); // NewPing setup of pin and maximum distance.
@@ -85,8 +86,8 @@ void setup()
   // Attach servo pins to servo objects.
   servoWheelLeft.attach(SERVO_WHEEL_LEFT_PIN);
   servoWheelRight.attach(SERVO_WHEEL_RIGHT_PIN);
-  servoArm1.attach(SERVO_ARM_1_PIN);
-  servoArm2.attach(SERVO_ARM_2_PIN);
+  servoGripper1.attach(SERVO_GRIPPER_1_PIN);
+  servoGripper2.attach(SERVO_GRIPPER_2_PIN);
 }
 
 void loop()
@@ -95,8 +96,8 @@ void loop()
   static unsigned long previousBackgroundColor = TFT_BLUE;
   static int previousButtonLeftState = HIGH;
   static int previousButtonRightState = HIGH;
-  static int servoArm1Pos = 90;
-  static int servoArm2Pos = 90;
+  static int servoGripper1Pos = 90;
+  static int servoGripper2Pos = 90;
   int distance;
 
   // put your main code here, to run repeatedly:
@@ -192,24 +193,24 @@ void loop()
       servoWheelRight.write(180);
       break;
     case '1':
-      servoArm1Pos -= 5;
-      servoArm1Pos = max(0, min(180, servoArm1Pos));
-      servoArm1.write(servoArm1Pos);
+      servoGripper1Pos -= 5;
+      servoGripper1Pos = max(0, min(180, servoGripper1Pos));
+      servoGripper1.write(servoGripper1Pos);
       break;
     case '2':
-      servoArm1Pos += 5;
-      servoArm1Pos = max(0, min(180, servoArm1Pos));
-      servoArm1.write(servoArm1Pos);
+      servoGripper1Pos += 5;
+      servoGripper1Pos = max(0, min(180, servoGripper1Pos));
+      servoGripper1.write(servoGripper1Pos);
       break;
     case '3':
-      servoArm2Pos = SERVO_GRIPPER_OPEN;
-      servoArm2Pos = max(0, min(180, servoArm2Pos));
-      servoArm2.write(servoArm2Pos);
+      servoGripper2Pos = SERVO_GRIPPER_OPEN;
+      servoGripper2Pos = max(0, min(180, servoGripper2Pos));
+      servoGripper2.write(servoGripper2Pos);
       break;
     case '4':
-      servoArm2Pos = SERVO_GRIPPER_CLOSED;
-      servoArm2Pos = max(0, min(180, servoArm2Pos));
-      servoArm2.write(servoArm2Pos);
+      servoGripper2Pos = SERVO_GRIPPER_CLOSED;
+      servoGripper2Pos = max(0, min(180, servoGripper2Pos));
+      servoGripper2.write(servoGripper2Pos);
       break;
     case 'a':
       // switch back to automatic mode.
