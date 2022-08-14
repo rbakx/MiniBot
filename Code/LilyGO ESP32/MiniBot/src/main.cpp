@@ -34,6 +34,8 @@ const int SERVO_GRIPPER_1_PIN = 32;
 const int SERVO_GRIPPER_2_PIN = 33;
 const int SERVO_GRIPPER_OPEN = 180;
 const int SERVO_GRIPPER_CLOSED = 30;
+const int SERVO_GRIPPER_OPEN_CLOSE_DELTA = 1;
+const int SERVO_GRIPPER_UP_DOWN_DELTA = 1;
 
 const int ULTRASONIC_TRIG_PIN = 2;
 const int ULTRASONIC_ECHO_PIN = 15;
@@ -47,8 +49,8 @@ const int MODE_MANUAL = 2;
 
 Servo servoWheelLeft;
 Servo servoWheelRight;
-Servo servoGripper1;
-Servo servoGripper2;
+Servo servoGripperUpDown;
+Servo servoGripperOpenClose;
 
 TFT_eSPI tft = TFT_eSPI(135, 240);
 NewPing ping(ULTRASONIC_TRIG_PIN, ULTRASONIC_ECHO_PIN, ULTRASONIC_MAX_DISTANCE); // NewPing setup of pin and maximum distance.
@@ -86,8 +88,8 @@ void setup()
   // Attach servo pins to servo objects.
   servoWheelLeft.attach(SERVO_WHEEL_LEFT_PIN);
   servoWheelRight.attach(SERVO_WHEEL_RIGHT_PIN);
-  servoGripper1.attach(SERVO_GRIPPER_1_PIN);
-  servoGripper2.attach(SERVO_GRIPPER_2_PIN);
+  servoGripperUpDown.attach(SERVO_GRIPPER_1_PIN);
+  servoGripperOpenClose.attach(SERVO_GRIPPER_2_PIN);
 }
 
 void loop()
@@ -96,8 +98,10 @@ void loop()
   static unsigned long previousBackgroundColor = TFT_BLUE;
   static int previousButtonLeftState = HIGH;
   static int previousButtonRightState = HIGH;
-  static int servoGripper1Pos = 90;
-  static int servoGripper2Pos = 90;
+  static int servoGripperUpDownPos = 90;
+  static int servoGripperOpenClosePos = 90;
+  static int ServoGripperUpDownDelta = 0;
+  static int ServoGripperOpenCloseDelta = 0;
   int distance;
 
   // put your main code here, to run repeatedly:
@@ -177,12 +181,10 @@ void loop()
     case 'f':
       servoWheelLeft.write(180);
       servoWheelRight.write(0);
-      delay(500);
       break;
     case 'b':
       servoWheelLeft.write(0);
       servoWheelRight.write(180);
-      delay(500);
       break;
     case 'l':
       servoWheelLeft.write(0);
@@ -193,35 +195,45 @@ void loop()
       servoWheelRight.write(180);
       break;
     case '1':
-      servoGripper1Pos -= 5;
-      servoGripper1Pos = max(0, min(180, servoGripper1Pos));
-      servoGripper1.write(servoGripper1Pos);
+      ServoGripperUpDownDelta = SERVO_GRIPPER_UP_DOWN_DELTA;
       break;
     case '2':
-      servoGripper1Pos += 5;
-      servoGripper1Pos = max(0, min(180, servoGripper1Pos));
-      servoGripper1.write(servoGripper1Pos);
+      ServoGripperUpDownDelta = -SERVO_GRIPPER_UP_DOWN_DELTA;
       break;
     case '3':
-      servoGripper2Pos = SERVO_GRIPPER_OPEN;
-      servoGripper2Pos = max(0, min(180, servoGripper2Pos));
-      servoGripper2.write(servoGripper2Pos);
+      ServoGripperOpenCloseDelta = SERVO_GRIPPER_OPEN_CLOSE_DELTA;
       break;
     case '4':
-      servoGripper2Pos = SERVO_GRIPPER_CLOSED;
-      servoGripper2Pos = max(0, min(180, servoGripper2Pos));
-      servoGripper2.write(servoGripper2Pos);
+      ServoGripperOpenCloseDelta = -SERVO_GRIPPER_OPEN_CLOSE_DELTA;
       break;
     case 'a':
       // switch back to automatic mode.
       mode = MODE_AUTO;
       break;
-    default:
+    case '0':
+      // Forward, backward, left, write button release, stop motion.
       servoWheelLeft.write(90);
       servoWheelRight.write(90);
       break;
+    case 'o':
+      // Gripper button release, stop motion.
+      ServoGripperUpDownDelta = 0;
+      ServoGripperOpenCloseDelta = 0;
+      break;
+    default:
+      break;
+    }
+    if (ServoGripperUpDownDelta != 0)
+    {
+      servoGripperUpDownPos += ServoGripperUpDownDelta;
+      servoGripperUpDownPos = max(0, min(180, servoGripperUpDownPos));
+      servoGripperUpDown.write(servoGripperUpDownPos);
+    }
+    if (ServoGripperOpenCloseDelta != 0)
+    {
+      servoGripperOpenClosePos += ServoGripperOpenCloseDelta;
+      servoGripperOpenClosePos = max(0, min(180, servoGripperOpenClosePos));
+      servoGripperOpenClose.write(servoGripperOpenClosePos);
     }
   }
-
-  delay(100);
 }
