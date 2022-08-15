@@ -40,6 +40,7 @@ const int SERVO_GRIPPER_UP_DOWN_DELTA = 1;
 const int ULTRASONIC_TRIG_PIN = 2;
 const int ULTRASONIC_ECHO_PIN = 15;
 const int ULTRASONIC_MAX_DISTANCE = 100;
+const int ULTRASONIC_MAX_JUMP = 20;
 
 const int ALLOWED_DISTANCE = 20;
 
@@ -102,22 +103,33 @@ void loop()
   static int servoGripperOpenClosePos = 90;
   static int ServoGripperUpDownDelta = 0;
   static int ServoGripperOpenCloseDelta = 0;
-  static int previousDistance = 0;
+  static int previousMeasuredDistance = ULTRASONIC_MAX_DISTANCE;
+  static int previousReportedDistance = ULTRASONIC_MAX_DISTANCE;
+  int measuredDistance;
   int distance;
 
   // put your main code here, to run repeatedly:
-  distance = ping.ping_cm(ULTRASONIC_MAX_DISTANCE);
+  measuredDistance = ping.ping_cm(ULTRASONIC_MAX_DISTANCE);
   // According to the datasheet https://www.elecrow.com/download/HC_SR04%20Datasheet.pdf, he HC-SR04 ultrasonic sensor normally should have an echo pulse timeout of 38 ms if no object is in sight.
   // This means the echo signal will last maximum appr. 38 ms which corresponds to appr 13 meter back and forth or 6.5 meter distance.
   // However, not all HC-SR04 clones have this timeout. The echo pulse can last > 200 ms if no object is in sight and right after that give a false short echo pulse (< 1 ms) when triggered.
   // The result is false short distance readings when no object is in sight.
-  // For these clones the filtering below is used; consider all distance readings right after a reading > ULTRASONIC_MAX_DISTANCE as ULTRASONIC_MAX_DISTANCE.
+  // Therefore single distance measurement jumps > ULTRASONIC_MAX_JUMP are filtered out.
   // The NewPing library returns 0 (NO_ECHO) when the distance > ULTRASONIC_MAX_DISTANCE.
-  if (distance == 0 || previousDistance == 0)
+  if (measuredDistance == 0)
   {
-    previousDistance = distance;
-    distance = ULTRASONIC_MAX_DISTANCE;
+    measuredDistance = ULTRASONIC_MAX_DISTANCE;
   }
+  if (abs(measuredDistance - previousMeasuredDistance) > ULTRASONIC_MAX_JUMP)
+  {
+    distance = previousReportedDistance;
+  }
+  else
+  {
+    distance = measuredDistance;
+  }
+  previousMeasuredDistance = measuredDistance;
+  previousReportedDistance = distance;
 
   backgroundColor = distance < ALLOWED_DISTANCE ? TFT_RED : TFT_BLUE;
 
