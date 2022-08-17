@@ -43,16 +43,17 @@ const int SERVO_GRIPPER_CLOSED = 30;
 const int SERVO_GRIPPER_OPEN_CLOSE_DELTA = 1;
 const int SERVO_GRIPPER_UP_DOWN_DELTA = 1;
 
-const int ULTRASONIC_TRIG_PIN = 2; // All ultrasonic sensors triggered at once.
+const int NOF_ULTRASONIC_SENSORS = 3;
+// All ultrasonic sensors are triggered at once as their trigger pins are connected to the same GPIO pin.
+const int ULTRASONIC_TRIG_PIN = 2;
 const int ULTRASONIC_0_ECHO_PIN = 15;
 const int ULTRASONIC_1_ECHO_PIN = 13;
 const int ULTRASONIC_2_ECHO_PIN = 12;
-const int ULTRASONIC_MAX_DISTANCE = 60;
+const int ULTRASONIC_MAX_DISTANCE = 100;
 const int ULTRASONIC_MAX_JUMP = 10;
 const int ULTRASONIC_DELAY_MS = 100;
-const int NOF_ULTRASONIC_SENSORS = 3;
 
-const int ALLOWED_DISTANCE = 30;
+const int ALLOWED_DISTANCE = 20;
 
 const int MODE_RESET = 0;
 const int MODE_MANUAL = 1;
@@ -172,7 +173,9 @@ void loop()
 
   // Read out ultrasonic sensors and trigger for the next read.
   // Multiple ultrasonic sensors are used which widens the FOV and makes it possible to approach a target or to follow an object.
-  // The ultrasonic sensors are all triggered using the same trigger signal. This to have consistent measurements during motion.
+  // In the FOLLOW mode only one object is involved and we have to determine which sensor has the object closest by to determine which direction to steer.
+  // In this case triggering all sensors at the same time is the most accurate solution when the MiniBot is moving.
+  // When more objects are involved and we want to get a distance map it is better to trigger the sensors one by one to prevent interference.
   // Reading the length of the echo pulse is done using an interrupt for each sensor.
   // The results is accurate distance measurements and no use of a delay (except for the short 10 µs trigger pulse). This in contrary to for example the NewPing library, which blocks waiting for the end of the echo pulse.
   //
@@ -264,64 +267,14 @@ void loop()
     tft.println("Cmd: \n" + String(cmd));
   }
 
-  if (mode == MODE_AUTO)
+  if (mode == MODE_RESET)
   {
-    if (distance[1] < ALLOWED_DISTANCE)
-    {
-      // Turn left or right randomly.
-      if (random(2) == 0)
-      {
-        servoWheelLeft.write(0);
-        servoWheelRight.write(0);
-      }
-      else
-      {
-        servoWheelLeft.write(180);
-        servoWheelRight.write(180);
-      }
-      delay(700);
-    }
-    else
-    {
-      servoWheelLeft.write(180);
-      servoWheelRight.write(0);
-    }
+    servoWheelLeft.write(90);
+    servoWheelRight.write(90);
+    servoGripperUpDown.write(90);
+    servoGripperOpenClose.write(90);
   }
-  else if (mode == MODE_FOLLOW)
-  {
-    if (distance[1] < ALLOWED_DISTANCE)
-    {
-      // Stop.
-      servoWheelLeft.write(90);
-      servoWheelRight.write(90);
-    }
-    else if (distance[1] <= distance[0] && distance[1] <= distance[2])
-    {
-      // Straight forward.
-      servoWheelLeft.write(180);
-      servoWheelRight.write(0);
-    }
-
-    else if (distance[0] < distance[2])
-    {
-      // Turn left.
-      servoWheelLeft.write(90);
-      servoWheelRight.write(70);
-    }
-    else if (distance[0] > distance[2])
-    {
-      // Turn right.
-      servoWheelLeft.write(110);
-      servoWheelRight.write(90);
-    }
-    else
-    {
-      // Straight forward.
-      servoWheelLeft.write(180);
-      servoWheelRight.write(0);
-    }
-  }
-  else
+  else if (mode == MODE_MANUAL)
   {
     switch (cmd)
     {
@@ -385,6 +338,57 @@ void loop()
       servoGripperOpenClosePos += ServoGripperOpenCloseDelta;
       servoGripperOpenClosePos = max(0, min(180, servoGripperOpenClosePos));
       servoGripperOpenClose.write(servoGripperOpenClosePos);
+    }
+  }
+  else if (mode == MODE_AUTO)
+  {
+    if (distance[1] < ALLOWED_DISTANCE)
+    {
+      // Turn left or right randomly.
+      if (random(2) == 0)
+      {
+        servoWheelLeft.write(0);
+        servoWheelRight.write(0);
+      }
+      else
+      {
+        servoWheelLeft.write(180);
+        servoWheelRight.write(180);
+      }
+      delay(700);
+    }
+    else
+    {
+      servoWheelLeft.write(180);
+      servoWheelRight.write(0);
+    }
+  }
+  else if (mode == MODE_FOLLOW)
+  {
+    if (distance[1] < ALLOWED_DISTANCE)
+    {
+      // Stop.
+      servoWheelLeft.write(90);
+      servoWheelRight.write(90);
+    }
+    else if ((distance[1] <= distance[0] && distance[1] <= distance[2]) || distance[0] == distance[2])
+    {
+      // Straight forward.
+      servoWheelLeft.write(180);
+      servoWheelRight.write(0);
+    }
+
+    else if (distance[0] < distance[2])
+    {
+      // Turn left.
+      servoWheelLeft.write(90);
+      servoWheelRight.write(70);
+    }
+    else
+    {
+      // Turn right.
+      servoWheelLeft.write(110);
+      servoWheelRight.write(90);
     }
   }
 }
