@@ -50,10 +50,12 @@ const int ULTRASONIC_0_ECHO_PIN = 15;
 const int ULTRASONIC_1_ECHO_PIN = 13;
 const int ULTRASONIC_2_ECHO_PIN = 12;
 const int ULTRASONIC_MAX_DISTANCE = 100;
-const int ULTRASONIC_MAX_JUMP = 10;
+const int ULTRASONIC_MAX_JUMP = 20;
 const int ULTRASONIC_DELAY_MS = 100;
 
 const int ALLOWED_DISTANCE = 20;
+
+const int TURNTIME = 700;
 
 const int MODE_RESET = 0;
 const int MODE_MANUAL = 1;
@@ -72,7 +74,7 @@ unsigned long backgroundColor = TFT_BLUE;
 
 volatile int distanceMicroSeconds[NOF_ULTRASONIC_SENSORS] = {0, 0, 0};
 
-void IsrEchoLeft()
+void IsrEcho0()
 {
   static unsigned long startTimeMicroSeconds;
   int level = digitalRead(ULTRASONIC_0_ECHO_PIN);
@@ -86,7 +88,7 @@ void IsrEchoLeft()
   }
 }
 
-void IsrEchoMiddle()
+void IsrEcho1()
 {
   static unsigned long startTimeMicroSeconds;
   int level = digitalRead(ULTRASONIC_1_ECHO_PIN);
@@ -100,7 +102,7 @@ void IsrEchoMiddle()
   }
 }
 
-void IsrEchoRight()
+void IsrEcho2()
 {
   static unsigned long startTimeMicroSeconds;
   int level = digitalRead(ULTRASONIC_2_ECHO_PIN);
@@ -123,12 +125,13 @@ void setup()
   pinMode(BUTTON_LEFT_PIN, INPUT_PULLUP);
   pinMode(BUTTON_RIGHT_PIN, INPUT_PULLUP);
   pinMode(ULTRASONIC_TRIG_PIN, OUTPUT);
-  pinMode(ULTRASONIC_0_ECHO_PIN, INPUT);
-  pinMode(ULTRASONIC_1_ECHO_PIN, INPUT);
-  pinMode(ULTRASONIC_2_ECHO_PIN, INPUT);
-  attachInterrupt(ULTRASONIC_0_ECHO_PIN, IsrEchoLeft, CHANGE);
-  attachInterrupt(ULTRASONIC_1_ECHO_PIN, IsrEchoMiddle, CHANGE);
-  attachInterrupt(ULTRASONIC_2_ECHO_PIN, IsrEchoRight, CHANGE);
+  // Ultrasonic echo pins to INPUT_PULLUP to prevent spurious interrupts when not all sensors are connected.
+  pinMode(ULTRASONIC_0_ECHO_PIN, INPUT_PULLUP);
+  pinMode(ULTRASONIC_1_ECHO_PIN, INPUT_PULLUP);
+  pinMode(ULTRASONIC_2_ECHO_PIN, INPUT_PULLUP);
+  attachInterrupt(ULTRASONIC_0_ECHO_PIN, IsrEcho0, CHANGE);
+  attachInterrupt(ULTRASONIC_1_ECHO_PIN, IsrEcho1, CHANGE);
+  attachInterrupt(ULTRASONIC_2_ECHO_PIN, IsrEcho2, CHANGE);
 
   SerialBT.begin();
 
@@ -167,6 +170,8 @@ void loop()
   static int ServoGripperUpDownDelta = 0;
   static int ServoGripperOpenCloseDelta = 0;
   static unsigned long previousMillis = 0;
+  static unsigned long startTurnTime = 0;
+  static bool turning = false;
   static int previousMeasuredDistance[NOF_ULTRASONIC_SENSORS] = {ULTRASONIC_MAX_DISTANCE, ULTRASONIC_MAX_DISTANCE, ULTRASONIC_MAX_DISTANCE};
   static int distance[NOF_ULTRASONIC_SENSORS] = {ULTRASONIC_MAX_DISTANCE, ULTRASONIC_MAX_DISTANCE, ULTRASONIC_MAX_DISTANCE};
   int measuredDistance[NOF_ULTRASONIC_SENSORS];
@@ -271,7 +276,7 @@ void loop()
   {
     servoWheelLeft.write(90);
     servoWheelRight.write(90);
-    servoGripperUpDown.write(90);
+    servoGripperUpDown.write(60);
     servoGripperOpenClose.write(90);
   }
   else if (mode == MODE_MANUAL)
@@ -342,8 +347,11 @@ void loop()
   }
   else if (mode == MODE_AUTO)
   {
-    if (distance[1] < ALLOWED_DISTANCE)
+    // Do not turn using a delay otherwise the distance measurement will not be updated.
+    if (turning == false && distance[1] < ALLOWED_DISTANCE)
     {
+      // Start the turn.
+      turning = true;
       // Turn left or right randomly.
       if (random(2) == 0)
       {
@@ -355,10 +363,19 @@ void loop()
         servoWheelLeft.write(180);
         servoWheelRight.write(180);
       }
-      delay(700);
+      startTurnTime = millis();
+    }
+    else if (turning == true)
+    {
+      // Turning in progress, check if turn time has passed.
+      if (millis() - startTurnTime > TURNTIME)
+      {
+        turning = false;
+      }
     }
     else
     {
+      // Straight forward.
       servoWheelLeft.write(180);
       servoWheelRight.write(0);
     }
@@ -371,24 +388,23 @@ void loop()
       servoWheelLeft.write(90);
       servoWheelRight.write(90);
     }
-    else if ((distance[1] <= distance[0] && distance[1] <= distance[2]) || distance[0] == distance[2])
-    {
-      // Straight forward.
-      servoWheelLeft.write(180);
-      servoWheelRight.write(0);
-    }
-
-    else if (distance[0] < distance[2])
+    else if (distance[1] > distance[0])
     {
       // Turn left.
       servoWheelLeft.write(90);
       servoWheelRight.write(70);
     }
-    else
+    else if (distance[1] > distance[2])
     {
       // Turn right.
       servoWheelLeft.write(110);
       servoWheelRight.write(90);
+    }
+    else
+    {
+      // Straight forward.
+      servoWheelLeft.write(180);
+      servoWheelRight.write(0);
     }
   }
 }
