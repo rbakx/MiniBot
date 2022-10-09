@@ -3,8 +3,6 @@ from machine import Timer
 from time import sleep_ms
 import ubluetooth
 
-ble_msg = ""
-is_ble_connected = False
 
 class ESP32_BLE():
     def __init__(self, name):
@@ -13,6 +11,8 @@ class ESP32_BLE():
         # stable ON when connected
         self.led = Pin(2, Pin.OUT)
         self.timer1 = Timer(0)
+        self.ble_msg = ""
+        self.is_ble_connected = False
         
         self.name = name
         self.ble = ubluetooth.BLE()
@@ -23,19 +23,15 @@ class ESP32_BLE():
         self.advertiser()
 
     def connected(self):
-        global is_ble_connected
-        is_ble_connected = True
+        self.is_ble_connected = True
         self.led.value(1)
         self.timer1.deinit()
 
     def disconnected(self):
-        global is_ble_connected
-        is_ble_connected = False
+        self.is_ble_connected = False
         self.timer1.init(period=100, mode=Timer.PERIODIC, callback=lambda t: self.led.value(not self.led.value()))
 
     def ble_irq(self, event, data):
-        global ble_msg
-        
         if event == 1: #_IRQ_CENTRAL_CONNECT:
                        # A central has connected to this peripheral
             self.connected()
@@ -48,7 +44,7 @@ class ESP32_BLE():
         elif event == 3: #_IRQ_GATTS_WRITE:
                          # A client has written to this characteristic or descriptor.          
             buffer = self.ble.gatts_read(self.rx)
-            ble_msg = buffer.decode('UTF-8').strip()
+            self.ble_msg = buffer.decode('UTF-8').strip()
             
     def register(self):        
         # Nordic UART Service (NUS)
@@ -66,6 +62,11 @@ class ESP32_BLE():
 
     def send(self, data):
         self.ble.gatts_notify(0, self.tx, data + '\n')
+        
+    def receive(self):
+        tmp_msg = self.ble_msg
+        self.ble_msg = ""
+        return tmp_msg
 
     def advertiser(self):
         name = bytes(self.name, 'UTF-8')
@@ -83,6 +84,7 @@ class ESP32_BLE():
                 
                 # https://jimmywongiot.com/2019/08/13/advertising-payload-format-on-ble/
                 # https://docs.silabs.com/bluetooth/latest/general/adv-and-scanning/bluetooth-adv-data-basics
+
 
 
 

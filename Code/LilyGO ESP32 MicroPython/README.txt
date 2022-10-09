@@ -7,7 +7,7 @@ Local editing main.py and other files and uploading
 ---------------------------------------------------
 ampy -p COM10 put main.py
 After reset the main.py will run.
-Use PuTTY as a serial motitor.
+Use PuTTY as a serial monitor.
 
 Remote editing main.py and other files and uploading
 ----------------------------------------------------
