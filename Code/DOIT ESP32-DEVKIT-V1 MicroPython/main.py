@@ -17,7 +17,7 @@ MOTION_PIN = 35
     
 led_builtin = Pin(LED_BUILTIN_PIN, Pin.OUT)
 led_builtin.value(1) # Turn onboard LED on
-motion = Pin(MOTION_PIN, Pin.IN, Pin.PULL_UP)
+motion = Pin(MOTION_PIN, Pin.IN)
 servo_left_pin = Pin(SERVO_LEFT_PIN)
 servo_right_pin = Pin(SERVO_RIGHT_PIN)
 my_servo_left = Servo(servo_left_pin)
