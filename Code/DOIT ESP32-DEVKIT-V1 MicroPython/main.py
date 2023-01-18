@@ -45,12 +45,12 @@ while True:
     distance = int(distance)
     print(distance)
     if distance > 20:
-        my_servo_left.write_angle(180)
+        my_servo_left.write_angle(0)
         my_servo_right.write_angle(180)
     else:
         my_servo_left.write_angle(0)
         my_servo_right.write_angle(0)
-    time.sleep_ms(1000)
+        time.sleep_ms(1000)
     if time.ticks_ms() - start_time > 10000:
         led_builtin.value(0) # Turn onboard LED off
         deepsleep()
